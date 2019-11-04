@@ -1,0 +1,609 @@
+// ConsoleApplication12.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
+
+#include "pch.h"
+#include <iostream>
+#include <string>
+#include <vector>
+#include <list>
+#include <fstream>
+#include <algorithm>
+#include <functional>
+#include <regex>
+#include <Windows.h>
+using namespace std;
+
+struct allTheLines              // lists without averages
+{
+public:
+	string all_Date, all_Time;
+	bool all_Place;
+	double all_Temp, all_Hum;
+
+	allTheLines() {}
+	allTheLines(string& d, string& t, bool& i, double& tmp, double& h)
+		: all_Date(d), all_Time(t), all_Place(i), all_Temp(tmp), all_Hum(h) {}
+};
+vector<allTheLines> allTheLinesIn, allTheLinesOut;
+
+struct avgInfo                             // lists with average per day
+{
+public:
+	string avg_Date;
+	double avg_Temp, avg_Hum, avg_Mold;
+
+	avgInfo() {}
+	avgInfo(string& d, double& tmp, double& h, double& mold)
+		: avg_Date(d), avg_Temp(tmp), avg_Hum(h), avg_Mold(mold) {}
+};
+list<avgInfo> avgInfoIn, avgInfoOut;
+
+bool comparedate(const avgInfo& a, const  avgInfo& b)
+{
+	return a.avg_Date < b.avg_Date;
+}
+
+bool comparetemp(const avgInfo& a, const avgInfo& b) {       // to make the value comparable to sort
+	return a.avg_Temp > b.avg_Temp;
+}
+
+bool comparehum(const avgInfo& a, const avgInfo& b) {        // to make the value comparable to sort
+	return a.avg_Hum < b.avg_Hum;
+}
+bool comparemold(const avgInfo& a, const avgInfo& b) {       // to make the value comparable to sort
+	return a.avg_Mold > b.avg_Mold;
+}
+
+
+bool isNum(string str) {           //to check  if the string is convertable
+	regex rx("[0-9]+");
+	return regex_match(str.begin(), str.end(), rx);
+}
+int main()
+{
+	long long int coutertest1 = 0;
+	string userimput;
+	string emp = "";
+	string buf_time;
+	string buf_date;
+	string buf_place;
+	string buf_temp;
+	string buf_hum;
+	string date;
+	string time;
+	bool in{ 0 };
+	double temp{ 0 }, tempin{ 0 }, tempout{ 0 }, hum{ 0 }, humin{ 0 }, humout{ 0 }, sumtin = 0.0, sumt = 0.0, sumtout = 0.0, sumh = 0.0, sumhin = 0.0, sumhout = 0.0, avgtempin{ 0 }, avgtempout{ 0 }, avgtemp{ 0 }, avghum{ 0 }, avghumin{ 0 }, avghumout{ 0 };
+	char comma = ',';
+	double moldin, moldout, mold, minimumsolution1, minimumsolution2;
+	string datetofind;
+	int counterwinter = 0, counterautunm = 0;
+
+	ifstream file("tempdata4.txt");
+	/////////2016-05-31 13:58:30,Inne,24.8,42
+	while (!file.eof()) {
+		file >> buf_date;   // from the first char until a space
+		date = buf_date;    // to use in the search function in the future
+		getline(file, buf_time, comma);       // from the second string until a comma
+		time = buf_time;                      // to use to create the days in the future
+		getline(file, buf_place, comma);     // from the third string until the comma
+		getline(file, buf_temp, comma);     // from the fourth string until the comma
+		temp = stod(buf_temp);              // convert temp_string to float
+		getline(file, buf_hum);            // take the last string
+		hum = stoi(buf_hum);       // convert it to int
+
+
+		if (buf_place == "Inne") {
+			in = true;
+			humin = hum;
+			tempin = temp;
+			avgtempin = avgtemp;
+			avghumin = avghum;
+			allTheLinesIn.push_back(allTheLines(date, time, in, tempin, humin));    //     164449
+
+
+		}
+
+		if (buf_place != "Inne") {
+			in = false;
+			humout = hum;
+			tempout = temp;
+			avgtempout = avgtemp;
+			avghumout = avghum;
+			allTheLinesOut.push_back(allTheLines(date, time, in, tempout, humout));  //     140032
+
+		}
+
+
+	}
+
+
+	int counte = 0;
+
+	for (size_t i = 0; i < allTheLinesIn.size() - 1; i++)
+	{
+
+		if (allTheLinesIn[i].all_Date == allTheLinesIn[i + 1].all_Date)
+		{
+
+			//	if ( allTheLinesIn[i + 1].all_Date
+
+			sumtin = sumtin + allTheLinesIn[i].all_Temp;
+			sumhin = sumhin + allTheLinesIn[i].all_Hum;
+
+
+			counte++;
+
+
+
+		}
+		else
+		{
+
+			avgtempin = sumtin / counte;
+			avghumin = sumhin / counte;
+			if (avghumin > 78 || avgtempin > 15)
+			{
+				moldin = 0.00085 * avgtempin * avghumin;
+			}
+			if (avgtempin < 15 || avghumin > 78)
+			{
+				moldin = 0.0025 * avgtempin * avghumin;
+
+			}
+			if (avghumin < 78 || avgtempin < 0 || moldin < 1)
+			{
+				moldin = 0;
+			}
+
+			avgInfoIn.push_back(avgInfo(allTheLinesIn[i].all_Date, avgtempin, avghumin, moldin));   //70
+			//coutertest1++;
+			sumtin = avgtempin = avghumin = moldin = counte = sumhin = 0.0;
+		}
+
+	}
+	//////for (auto itr = avgInfoIn.begin(); itr != avgInfoIn.end(); itr++)
+	//////{
+	//////	cout << itr->avg_Date << "\t" << itr->avg_Temp << "\t" << itr->avg_Hum << "\n";
+
+	//////}
+	//////system("pause");
+	//if (emp == buf_date && in == true)
+	//{
+	//	sumtout = sumtout + tempout;
+	//	sumhout = sumhout + humout;
+	//	avgtempout = sumtout / allTheLinesInAndOut.size();
+	//	avghumout = sumhout / allTheLinesInAndOut.size();
+	//	moldout = 0.00085 * avgtempout * avghumout;        // 60
+
+	//}
+	{
+		int countero = 0;
+		size_t i{};
+		for (; i < allTheLinesOut.size() - 1; i++)
+		{
+
+			if (allTheLinesOut[i].all_Date == allTheLinesOut[i + 1].all_Date)
+			{
+
+				sumtout = sumtout + allTheLinesOut[i].all_Temp;
+				sumhout = sumhout + allTheLinesOut[i].all_Hum;
+				countero++;
+
+
+			}
+			else
+			{
+				avgtempout = sumtout / countero;
+				avghumout = sumhout / countero;
+
+
+
+
+
+				if (avghumout > 78 || avgtempout > 15)
+				{
+					moldout = 0.00085 * avgtempout * avghumout;
+				}
+				if (avgtempout > 0 && avgtempout < 15 && avghumout > 78)
+				{
+					//minimumsolution1 = 0.00048 * avgtempout *  avghumout;
+					//if (minimumsolution1 >= 1)
+					//{
+					moldout = 0.0025 * avgtempout * avghumout;
+					//}
+				}
+
+				if (avghumout < 78 || avgtempout < 0 || moldout < 1)
+				{
+					moldout = 0;
+				}
+				avgInfoOut.push_back(avgInfo(allTheLinesOut[i].all_Date, avgtempout, avghumout, moldout));
+				sumtout = avgtempout = avghumout = moldout = countero = sumhout = 0.0;
+			}
+
+		}
+		avgtempout = sumtout / countero;
+		avghumout = sumhout / countero;
+
+		if (avghumout > 78 || avgtempout > 15)
+		{
+			moldout = 0.00085 * avgtempout * avghumout;
+		}
+		if (avgtempout > 0 && avgtempout < 15 && avghumout > 78)
+		{
+			//minimumsolution1 = 0.00048 * avgtempout *  avghumout;
+			//if (minimumsolution1 >= 1)
+			//{
+			moldout = 0.0025 * avgtempout * avghumout;
+			//}
+		}
+
+		if (avghumout < 78 || avgtempout < 0 || moldout < 1)
+		{
+			moldout = 0;
+		}
+		avgInfoOut.push_back(avgInfo(allTheLinesOut[i].all_Date, avgtempout, avghumout, moldout));
+
+		allTheLinesIn.clear();
+		allTheLinesOut.clear();
+	}
+	//list<avgInfo>::const_iterator itr = avgInfoIn.begin();
+	//while (itr != avgInfoIn.end()) {
+	//	//cout << "Date: " << itr->avg_Date << " " << itr->avg_Temp << endl;  
+	//	itr++;
+	//	//cin >> userimput;
+	//	//cout << date << " " << avgtempin << " " /*<<  avghumin << " " << moldin << " " << avgtempout <<" " << avghumout << " " << moldout*/ << endl;
+	//}
+
+// the closer to 1 the closest to get the minimun risk of mold
+
+
+
+
+/*list<dth>::const_iterator itr = bossin.begin();
+do {
+	cout << itr->d_date << " " << itr-> d_temp << " " <<  endl;
+	itr++;
+} while (itr != bossin.end());*/
+	do {
+		system("cls");
+		cout << "[1]Would you like to see the data outside the house?" << endl;
+		cout << "[2]Would you like to see the data inside the house?" << endl;
+		cout << "[0]quit the program" << endl;
+		cin >> userimput;
+
+		if (isNum(userimput))
+		{
+			switch (stoi(userimput))
+			{
+			case 1:
+			{
+
+				system("cls");
+				cout << "                                                                                  OUTSIDE" << endl;
+				cout << "[1]Look for an average temperature of a specific date" << endl;
+				cout << "[2]Show days from warmest to coldest" << endl;
+				cout << "[3]Show days from dryest to wettest" << endl;
+				cout << "[4]Show days from the highest rist of mold to the smallest" << endl;
+				cout << "[5]Find the first day of the meteorological autumn" << endl;
+				cout << "[6]Find the first day of the meteorological winter" << endl;
+				cout << "[0]quit the program" << endl;
+				cin >> userimput;
+				if (isNum(userimput)) {
+					switch (stoi(userimput))
+					{
+					case 1:
+					{
+						bool datefound;
+						system("cls");
+						cout << "                                                                                  OUTSIDE" << endl;
+						cout << "Please enter the date you wish to find in the database like this: yyyy-mm-dd" << endl;
+						cin >> datetofind;
+						if (datefound = false)
+						{
+							cout << "Could not find the date" << endl;
+							system("pause");
+						}
+
+						if (datetofind.size() == 10)
+						{
+							list<avgInfo>::const_iterator itr = avgInfoOut.begin();
+							while (itr != avgInfoOut.end() || itr->avg_Date != datetofind)
+							{
+
+								itr++;
+
+								if (datetofind == itr->avg_Date)
+								{
+
+									cout << "Date has been found: " << datetofind << endl;
+									cout << "Date:" << itr->avg_Date << " the average temperature outside the house on this date is:  " << itr->avg_Temp << endl;
+									// Sleep(2000);
+									system("pause");
+									datefound = true;
+									break;
+
+
+								}
+								else { datefound = false; }
+							}
+						}
+						else { datefound = false; }
+					}
+					break;
+					case 2:
+					{
+						avgInfoOut.sort(comparetemp);
+						system("cls");
+						cout << "                                                                          OUTSIDE's TEMPERATURE" << endl;
+						list<avgInfo>::const_iterator itr = avgInfoOut.begin();
+
+						do {
+							cout << "Date: " << itr->avg_Date << " temperature:  " << itr->avg_Temp << " " << endl;
+							itr++;
+						} while (itr != avgInfoOut.end());
+						system("pause");
+					}
+					break;
+					case 3:
+					{
+						avgInfoOut.sort(comparehum);
+						system("cls");
+						cout << "                                                                           OUTSIDE's HUMIDITY" << endl;
+
+
+						list<avgInfo>::const_iterator itr = avgInfoOut.begin();
+						do {
+							cout << "Date: " << itr->avg_Date << " Humidity " << itr->avg_Hum << endl;
+							itr++;
+
+
+						} while (itr != avgInfoOut.end());
+						system("pause");
+						break;
+
+
+					}
+					break;
+					case 4:
+					{
+
+
+						avgInfoOut.sort(comparemold);
+						system("cls");
+						cout << "                                                                            OUTSIDE's MOLD RISK" << endl;
+						list<avgInfo>::const_iterator itr = avgInfoOut.begin();
+
+						do {
+							cout << "Date: " << itr->avg_Date << " Mold Risk:  " << itr->avg_Mold << " " << endl;
+							itr++;
+						} while (itr != avgInfoOut.end());
+						system("pause");
+					}
+					break;
+					case 5:
+					{
+						system("cls");
+						cout << "                                                                                  OUTSIDE" << endl;
+						avgInfoOut.sort(comparedate);
+						list<avgInfo>::const_iterator itr = avgInfoOut.begin();
+						while (itr != avgInfoOut.end() || counterautunm < 6) {
+							//	//cout << "Date: " << itr->avg_Date << " " << itr->avg_Temp << endl;  
+							if (itr->avg_Temp <= 10 && itr->avg_Temp >= 0)
+							{
+								counterautunm = counterautunm + 1;
+							}
+							itr++;
+							if (counterautunm != 0 && (itr->avg_Temp < 0 || itr->avg_Temp > 10))
+							{
+								counterautunm = 0;
+								itr++;
+
+							}
+							if (counterautunm == 5)
+							{
+								itr--;
+								itr--;
+								itr--;
+								itr--;
+								itr--;
+
+								cout << "The autunm starts at: " << itr->avg_Date << endl;
+								system("pause");
+								break;
+
+
+							}
+							if (counterautunm != 5 && itr == avgInfoOut.end()) {
+
+								cout << "Autunm could not be found" << endl;
+								system("pause");
+								break;
+							}
+							//	//cout << date << " " << avgtempin << " " /*<<  avghumin << " " << moldin << " " << avgtempout <<" " << avghumout << " " << moldout*/ << endl;
+						}
+
+
+
+
+
+					}
+					break;
+					case 6:
+					{
+						system("cls");
+						cout << "                                                                                  OUTSIDE" << endl;
+						avgInfoOut.sort(comparedate);
+						list<avgInfo>::const_iterator itr = avgInfoOut.begin();
+						while (itr != avgInfoOut.end() || counterwinter < 6) {
+							//	//cout << "Date: " << itr->avg_Date << " " << itr->avg_Temp << endl;  
+							if (itr->avg_Temp < 0)
+							{
+								counterwinter = counterwinter + 1;
+							}
+							itr++;
+							if (counterwinter != 0 && itr->avg_Temp > 0)
+							{
+								counterwinter = 0;
+								itr++;
+
+							}
+							if (counterwinter == 5)
+							{
+								itr--;
+								itr--;
+								itr--;
+								itr--;
+								itr--;
+
+								cout << "The winter starts at: " << itr->avg_Date << endl;
+								system("pause");
+								break;
+
+
+							}
+							if (counterwinter != 5 && itr == avgInfoOut.end()) {
+
+								cout << "Winter could not be found" << endl;
+								system("pause");
+								break;
+							}
+						}
+					}
+					break;
+					default:
+					{}
+					break;
+					}
+				}
+				else
+				{
+					system("cls");
+					cout << "Please, use only numbers from 0-6" << endl;
+					Sleep(1000);
+				}
+				break;
+
+
+			}
+
+			case 2:
+			{
+
+				system("cls");
+				cout << "                                                                                  INSIDE" << endl;
+				cout << "[1]Look for an average temperature of a specific date" << endl;
+				cout << "[2]Show days from warmest to coldest" << endl;
+				cout << "[3]Show days from dryest to wettest" << endl;
+				cout << "[4]Show days from the highest rist of mold to the smallest" << endl;
+				cout << "[0]quit the program" << endl;
+				cin >> userimput;
+				if (isNum(userimput)) {
+					switch (stoi(userimput))
+					{
+					case 1:
+					{ bool datefound;
+					system("cls");
+					cout << "                                                                                  INSIDE" << endl;
+					cout << "Please enter the date you wish to find in the database like this: yyyy-mm-dd" << endl;
+					cin >> datetofind;
+					if (datefound = false)
+					{
+						cout << "Could not find the date" << endl;
+						system("pause");
+					}
+
+					if (datetofind.size() == 10)
+					{
+						list<avgInfo>::const_iterator itr = avgInfoIn.begin();
+						while (itr != avgInfoIn.end() || itr->avg_Date != datetofind)
+						{
+
+							itr++;
+
+							if (datetofind == itr->avg_Date)
+							{
+
+								cout << "Date has been found: " << datetofind << endl;
+								cout << "Date:" << itr->avg_Date << " the average temperature inside the house on this date is:  " << itr->avg_Temp << endl;
+								// Sleep(2000);
+								system("pause");
+								datefound = true;
+								break;
+
+
+							}
+							else { datefound = false; }
+						}
+					}
+					else { datefound = false; }
+					}
+					break;
+					case 2:
+					{
+						avgInfoIn.sort(comparetemp);
+						system("cls");
+						cout << "                                                                         INSIDE's TEMPERATURE" << endl;
+						list<avgInfo>::const_iterator itr = avgInfoIn.begin();
+						do {
+							cout << "Date: " << itr->avg_Date << " temperature: " << itr->avg_Temp << endl;
+							itr++;
+						} while (itr != avgInfoIn.end());
+						system("pause");
+
+					}
+					break;
+					case 3:
+					{
+						avgInfoIn.sort(comparehum);
+						system("cls");
+						cout << "                                                                          INSIDE's HUMIDITY" << endl;
+						list<avgInfo>::const_iterator itr = avgInfoIn.begin();
+						do {
+							cout << "Date: " << itr->avg_Date << " humidity: " << itr->avg_Hum << endl;
+							itr++;
+						} while (itr != avgInfoIn.end());
+						system("pause");
+					}
+					break;
+					case 4:
+					{  avgInfoIn.sort(comparemold);
+					system("cls");
+					cout << "                                                                          INSIDE's MOLD RISK" << endl;
+					list<avgInfo>::const_iterator itr = avgInfoIn.begin();
+
+
+					do {
+						cout << "Date: " << itr->avg_Date << " Mold Risk: " << itr->avg_Mold << endl;
+						itr++;
+					} while (itr != avgInfoIn.end());
+					system("pause");
+					}
+					break;
+					default:
+					{}
+					break;
+					}
+				}
+				else {
+					system("cls");
+					cout << "Please, use only numbers from 0-4" << endl;
+					Sleep(1000);
+				}
+			}
+			default:
+			{}
+			break;
+			}
+		}
+		else {
+			system("cls");
+			cout << "Please, use only numbers from 0-2" << endl;
+			Sleep(1000);
+		}
+	} while (userimput != "0");
+
+
+
+}
